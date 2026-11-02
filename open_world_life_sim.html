@@ -1,0 +1,1635 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ওপেন-ওয়ার্ল্ড লাইফ সিমুলেশন (Open-World Life Sim)</title>
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --accent: #38bdf8;
+      --gold: #f59e0b;
+      --green: #22c55e;
+      --red: #ef4444;
+      --text-main: #f8fafc;
+      --text-dim: #94a3b8;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hind Siliguri", "Noto Sans Bengali", sans-serif;
+    }
+    body {
+      background: #020617;
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      overflow-x: hidden;
+      padding: 4px;
+    }
+    .mobile-frame {
+      width: 100%;
+      max-width: 420px;
+      height: 100vh;
+      max-height: 900px;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-dark);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.7);
+      overflow: hidden;
+      position: relative;
+    }
+    /* Top Header Bar */
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 10px;
+      background: #090d16;
+      border-bottom: 1px solid var(--card-border);
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+    .time-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+      color: #e2e8f0;
+    }
+    .weather-pill {
+      background: #1e293b;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-size: 10px;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      border: 1px solid #334155;
+    }
+    .sim-controls {
+      display: flex;
+      gap: 4px;
+    }
+    .ctrl-btn {
+      background: #334155;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 10px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .ctrl-btn:active, .ctrl-btn.active {
+      background: #0284c7;
+    }
+
+    /* Canvas Viewport */
+    .canvas-container {
+      position: relative;
+      width: 100%;
+      height: 310px;
+      background: #152238;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
+    .canvas-overlay-tag {
+      position: absolute;
+      top: 6px;
+      left: 8px;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 9px;
+      color: #94a3b8;
+      pointer-events: none;
+    }
+
+    /* God Mode Panel */
+    .god-panel {
+      background: #0f172a;
+      border-top: 1px solid var(--card-border);
+      border-bottom: 1px solid var(--card-border);
+      padding: 5px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .god-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+    }
+    .selected-tag {
+      font-size: 11px;
+      font-weight: bold;
+      color: var(--gold);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 155px;
+    }
+    .action-scroll {
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding-bottom: 1px;
+    }
+    .action-scroll::-webkit-scrollbar {
+      display: none;
+    }
+    .act-btn {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #f1f5f9;
+      font-size: 10px;
+      padding: 3px 6px;
+      border-radius: 4px;
+      white-space: nowrap;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+    .act-btn:active {
+      transform: scale(0.96);
+      background: #2563eb;
+    }
+    .act-btn.gold {
+      border-color: #d97706;
+      background: #78350f;
+      color: #fef3c7;
+    }
+    .act-btn.green {
+      border-color: #16a34a;
+      background: #064e3b;
+      color: #d1fae5;
+    }
+    .global-events {
+      display: flex;
+      gap: 3px;
+      justify-content: space-between;
+    }
+    .glob-btn {
+      flex: 1;
+      font-size: 9px;
+      padding: 3px 2px;
+      border: 1px solid #475569;
+      border-radius: 4px;
+      color: #fff;
+      cursor: pointer;
+      text-align: center;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .glob-btn.feast { background: #065f46; border-color: #10b981; }
+    .glob-btn.ubi { background: #1e3a8a; border-color: #3b82f6; }
+    .glob-btn.crime { background: #831843; border-color: #ec4899; }
+    .glob-btn.storm { background: #431407; border-color: #ea580c; }
+    .glob-btn.fest { background: #581c87; border-color: #a855f7; }
+
+    /* 5x2 Citizen Grid */
+    .grid-section {
+      background: #090d16;
+      padding: 4px 6px;
+      flex-shrink: 0;
+    }
+    .grid-title {
+      font-size: 10px;
+      color: var(--text-dim);
+      margin-bottom: 3px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .citizen-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      gap: 3px;
+    }
+    .c-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 5px;
+      padding: 3px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 60px;
+      position: relative;
+      transition: all 0.15s;
+    }
+    .c-card.selected {
+      border-color: var(--gold);
+      background: #24221b;
+      box-shadow: 0 0 0 1px var(--gold);
+    }
+    .c-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      line-height: 1;
+    }
+    .c-name {
+      font-size: 9px;
+      font-weight: bold;
+      color: #e2e8f0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 48px;
+    }
+    .c-tent {
+      font-size: 8px;
+      color: #94a3b8;
+    }
+    .c-money {
+      font-size: 9px;
+      color: #38bdf8;
+      font-weight: 600;
+      line-height: 1;
+    }
+    .c-task-badge {
+      font-size: 8px;
+      color: #cbd5e1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.1;
+      display: flex;
+      align-items: center;
+      gap: 1px;
+    }
+    .bar-wrap {
+      width: 100%;
+      height: 3px;
+      background: #334155;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 1px;
+    }
+    .bar-hp {
+      height: 100%;
+      background: var(--green);
+      transition: width 0.2s;
+    }
+    .bar-prog {
+      height: 100%;
+      background: var(--accent);
+      transition: width 0.1s;
+    }
+
+    /* Live Action Log */
+    .log-section {
+      flex: 1;
+      min-height: 65px;
+      background: #050811;
+      border-top: 1px solid var(--card-border);
+      padding: 4px 8px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .log-header {
+      font-size: 9px;
+      color: var(--text-dim);
+      font-weight: 600;
+      margin-bottom: 2px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .log-stream {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 9px;
+      scrollbar-width: thin;
+    }
+    .log-item {
+      line-height: 1.25;
+      color: #cbd5e1;
+    }
+    .tag-chat { color: #38bdf8; font-weight: bold; }
+    .tag-crime { color: #f43f5e; font-weight: bold; }
+    .tag-work { color: #eab308; font-weight: bold; }
+    .tag-heal { color: #10b981; font-weight: bold; }
+    .tag-trade { color: #a855f7; font-weight: bold; }
+    .tag-fight { color: #f97316; font-weight: bold; }
+    .tag-death { color: #ef4444; font-weight: bold; }
+
+    /* Toast Notification */
+    .toast-box {
+      position: absolute;
+      top: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 10px;
+      color: #f8fafc;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 100;
+      text-align: center;
+      max-width: 90%;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+    .toast-box.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+<div class="mobile-frame">
+  <!-- Top Bar -->
+  <div class="header-bar">
+    <div class="time-badge">
+      <span id="day-counter">দিন ১</span>
+      <span style="color:#64748b">•</span>
+      <span id="clock-display">০৮:০০ AM</span>
+    </div>
+    <div class="weather-pill" id="weather-badge">
+      <span>☀️</span> <span id="weather-text">রৌদ্রোজ্জ্বল</span>
+    </div>
+    <div class="sim-controls">
+      <button class="ctrl-btn active" id="spd-1x">১x</button>
+      <button class="ctrl-btn" id="spd-2x">২x</button>
+      <button class="ctrl-btn" id="spd-pause">⏸️</button>
+      <button class="ctrl-btn" id="sound-btn">🔊</button>
+    </div>
+  </div>
+
+  <!-- Canvas -->
+  <div class="canvas-container">
+    <canvas id="gameCanvas" width="400" height="310"></canvas>
+    <div class="canvas-overlay-tag">মানচিত্র: মুক্ত বিশ্ব (১০ এলাকা + ১০ তাঁবু)</div>
+  </div>
+
+  <!-- God Mode Interactive Control Panel -->
+  <div class="god-panel">
+    <div class="god-row">
+      <div class="selected-tag" id="selected-info">নাগরিক: ১. রহিম (সৎ)</div>
+      <div style="display:flex; gap:3px;">
+        <button class="act-btn gold" id="btn-give-money">💵 +৳৫০ দিন</button>
+        <button class="act-btn green" id="btn-full-heal">💖 পূর্ণ সুস্থ</button>
+      </div>
+    </div>
+    <!-- Individual Actions -->
+    <div class="action-scroll" id="action-buttons-wrap">
+      <button class="act-btn" data-act="FARM">🌾 কৃষি</button>
+      <button class="act-btn" data-act="SCHOOL">🏫 স্কুল</button>
+      <button class="act-btn" data-act="OFFICE">🏢 অফিস</button>
+      <button class="act-btn" data-act="EAT">🍲 খাওয়া</button>
+      <button class="act-btn" data-act="MARKET">🛍️ বাজার</button>
+      <button class="act-btn" data-act="PARK">🌳 আড্ডা</button>
+      <button class="act-btn" data-act="HOSPITAL">🏥 চিকিৎসা</button>
+      <button class="act-btn" data-act="GYM">🏋️ জিম</button>
+      <button class="act-btn" data-act="POLICE">🚓 পুলিশ পাহারা</button>
+      <button class="act-btn" data-act="CLUB">🎪 বিনোদন</button>
+      <button class="act-btn" data-act="SLEEP">🏕️ তাঁবুতে ঘুম</button>
+    </div>
+    <!-- Global Events -->
+    <div class="global-events">
+      <button class="glob-btn feast" id="ev-feast">🍲 গণভোজ</button>
+      <button class="glob-btn ubi" id="ev-ubi">💰 ভাতা (৳১০০)</button>
+      <button class="glob-btn crime" id="ev-crime">🦹 ডাকাতি</button>
+      <button class="glob-btn storm" id="ev-storm">⛈️ ঝড় আনুন</button>
+      <button class="glob-btn fest" id="ev-festival">🎪 বসন্ত মেলা</button>
+    </div>
+  </div>
+
+  <!-- 5x2 Citizen Grid Dashboard -->
+  <div class="grid-section">
+    <div class="grid-title">
+      <span>লাইভ নাগরিক অবস্থা (৫×২ গ্রিড)</span>
+      <span style="font-size:9px; color:#38bdf8;">ক্লিক করে নির্বাচন করুন</span>
+    </div>
+    <div class="citizen-grid" id="citizen-grid">
+      <!-- 10 Citizen Cards generated here -->
+    </div>
+  </div>
+
+  <!-- Action Log -->
+  <div class="log-section">
+    <div class="log-header">
+      <span>ঘটনা ও কথোপকথন লগ (Live Action Log)</span>
+      <span id="log-count">সক্রিয়</span>
+    </div>
+    <div class="log-stream" id="log-stream">
+      <!-- Live logs stream here -->
+    </div>
+  </div>
+
+  <!-- In-app Toast message -->
+  <div class="toast-box" id="toast-msg"></div>
+</div>
+
+<script>
+(function() {
+  // Audio Synthesis (Web Audio API)
+  let audioCtx = null;
+  let soundEnabled = true;
+  function initAudio() {
+    if (!audioCtx) {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) audioCtx = new AudioContext();
+      } catch (e) {}
+    }
+  }
+  function playBeep(freq = 440, type = 'sine', dur = 0.1, vol = 0.08) {
+    if (!soundEnabled || !audioCtx) return;
+    try {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + dur);
+    } catch(e) {}
+  }
+  function playCoinSound() {
+    playBeep(880, 'sine', 0.08, 0.1);
+    setTimeout(() => playBeep(1320, 'sine', 0.12, 0.08), 80);
+  }
+  function playAlertSound() {
+    playBeep(300, 'sawtooth', 0.15, 0.1);
+  }
+  function playHealSound() {
+    playBeep(523, 'triangle', 0.1, 0.08);
+    setTimeout(() => playBeep(659, 'triangle', 0.1, 0.08), 90);
+    setTimeout(() => playBeep(784, 'triangle', 0.15, 0.08), 180);
+  }
+
+  // Toast System
+  const toastEl = document.getElementById('toast-msg');
+  let toastTimer = null;
+  function showToast(text) {
+    if (!toastEl) return;
+    toastEl.textContent = text;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      toastEl.classList.remove('show');
+    }, 2200);
+  }
+
+  // Simulation State & Time
+  let simSpeed = 1; // 0=pause, 1=normal, 2=fast
+  let timeMinutes = 8 * 60; // starts at 8:00 AM
+  let dayCount = 1;
+  let weather = 'sunny'; // sunny, rainy, storm, cloudy, night
+  let stormTimer = 0;
+  let rainParticles = [];
+
+  // Bengali Number Formatter
+  function toBanglaDigits(num) {
+    const bn = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
+    return num.toString().replace(/\d/g, d => bn[d]);
+  }
+
+  // 10 Areas / Locations on Canvas
+  // Canvas width=400, height=310
+  const ZONES = {
+    FARM: { id: 'FARM', name: 'কৃষিজমি', x: 10, y: 15, w: 72, h: 65, color: '#3f6212', icon: '🌾', duration: 9 },
+    SCHOOL: { id: 'SCHOOL', name: 'বিদ্যালয়', x: 92, y: 15, w: 68, h: 65, color: '#1e3a8a', icon: '🏫', duration: 10 },
+    OFFICE: { id: 'OFFICE', name: 'অফিস', x: 170, y: 15, w: 68, h: 65, color: '#334155', icon: '🏢', duration: 11 },
+    FOOD: { id: 'FOOD', name: 'খাবারের দোকান', x: 248, y: 15, w: 70, h: 65, color: '#b45309', icon: '🍲', duration: 3.5 },
+    MARKET: { id: 'MARKET', name: 'বাণিজ্যের বাজার', x: 328, y: 15, w: 62, h: 65, color: '#6d28d9', icon: '🛍️', duration: 4.5 },
+    
+    PARK: { id: 'PARK', name: 'আড্ডার পার্ক', x: 10, y: 100, w: 72, h: 65, color: '#14532d', icon: '🌳', duration: 5 },
+    HOSPITAL: { id: 'HOSPITAL', name: 'হাসপাতাল', x: 92, y: 100, w: 68, h: 65, color: '#991b1b', icon: '🏥', duration: 8 },
+    GYM: { id: 'GYM', name: 'ব্যায়ামাগার', x: 170, y: 100, w: 68, h: 65, color: '#701a75', icon: '🏋️', duration: 5.5 },
+    POLICE: { id: 'POLICE', name: 'পুলিশ ফাঁড়ি', x: 248, y: 100, w: 70, h: 65, color: '#1e293b', icon: '🚓', duration: 6 },
+    CLUB: { id: 'CLUB', name: 'বিনোদন মেলা', x: 328, y: 100, w: 62, h: 65, color: '#831843', icon: '🎪', duration: 5 },
+  };
+
+  // 10 Residential Tents at the Bottom
+  // y = 205 to 285
+  const TENTS = [];
+  for (let i = 0; i < 10; i++) {
+    const col = i % 5;
+    const row = Math.floor(i / 5);
+    TENTS.push({
+      id: i + 1,
+      name: `তাঁবু ${toBanglaDigits(i + 1)}`,
+      x: 15 + col * 78,
+      y: 195 + row * 52,
+      w: 60,
+      h: 42,
+      color: '#475569'
+    });
+  }
+
+  // Citizens Pool
+  const PERSONALITIES = ['সৎ', 'লোভী', 'ঝগড়াটে', 'দয়ালু', 'ব্যবসায়ী', 'অলস', 'পরিশ্রমী', 'চতুর'];
+  const NAMES_POOL = ['রহিম', 'করিম', 'সালমা', 'বরকত', 'জামিল', 'রফিক', 'খাদিজা', 'জব্বার', 'তানিয়া', 'সোহেল', 'শফিক', 'আমেনা', 'হাসান', 'রোকসানা', 'বেলাল'];
+
+  let citizens = [];
+  let selectedCitizenId = 1;
+
+  function createCitizen(id, tentId, customName = null, customPersonality = null) {
+    const name = customName || NAMES_POOL[(id - 1) % NAMES_POOL.length];
+    const tent = TENTS[tentId - 1];
+    const personality = customPersonality || PERSONALITIES[(id - 1) % PERSONALITIES.length];
+    
+    // Distinct avatar colors
+    const colors = ['#f43f5e', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#14b8a6', '#f97316', '#a855f7'];
+
+    return {
+      id: id,
+      tentId: tentId,
+      name: name,
+      personality: personality,
+      color: colors[(id - 1) % colors.length],
+      x: tent.x + tent.w / 2,
+      y: tent.y + tent.h / 2,
+      targetX: tent.x + tent.w / 2,
+      targetY: tent.y + tent.h / 2,
+      speed: 1.2,
+      hp: 100,
+      hunger: 15 + Math.random() * 20, // 0 to 100, slow increase
+      energy: 85 + Math.random() * 15, // 0 to 100
+      money: 40 + Math.floor(Math.random() * 40), // ৳
+      intellect: 20 + Math.floor(Math.random() * 30),
+      state: 'working', // 'walking', 'working', 'sleeping', 'fighting'
+      task: {
+        type: 'SLEEP',
+        name: 'তাঁবুতে বিশ্রাম',
+        zone: null,
+        tentId: tentId,
+        icon: '🏕️',
+        progress: 0,
+        maxDuration: 8
+      },
+      bubble: {
+        text: '',
+        timer: 0,
+        color: '#fff',
+        bg: 'rgba(15, 23, 42, 0.9)'
+      },
+      quarrelTarget: null,
+      cooldown: 0
+    };
+  }
+
+  function initCitizens() {
+    citizens = [];
+    const initialPersonalities = ['সৎ', 'লোভী', 'জ্ঞানী', 'অলস', 'ঝগড়াটে', 'চতুর', 'দয়ালু', 'ব্যবসায়ী', 'চটপটে', 'আড্ডাবাজ'];
+    for (let i = 1; i <= 10; i++) {
+      citizens.push(createCitizen(i, i, NAMES_POOL[i - 1], initialPersonalities[i - 1]));
+    }
+  }
+
+  // Dialogue & Speech Bubble System
+  const SPEECH_REPERTOIRE = {
+    FARM: ["ফসল এবার বেশ ভালো হবে!", "মাঠের সোনালী ধানে মন ভরে যায়।", "কোদাল চালাতে গিয়ে পিঠ ব্যথা করছে...", "বৃষ্টি হলে চাষাবাদ সহজ হতো।"],
+    SCHOOL: ["জ্ঞান অর্জনই মানব জীবনের লক্ষ্য।", "গণিতের সমাধানটা শেষ পর্যন্ত মিলল!", "নতুন অধ্যায়টা দারুণ তথ্যবহুল।", "স্যার আজ দারুণ পড়িয়েছেন!"],
+    OFFICE: ["বসের ডেডলাইন মেটানো বড় চাপ!", "নতুন ফাইলগুলো প্রসেস করে রাখছি।", "কাজের ফাঁকে এক কাপ গরম চা হলে জমত।", "মাস শেষে পদোন্নতি পাব তো?"],
+    FOOD: ["আহ্! খিচুড়ি আর ভর্তার স্বাদই আলাদা!", "পেটের ক্ষুধা দূর হলে দুনিয়া সুন্দর!", "চা টা দারুণ কড়া হয়েছে!", "খাবারের বিল মাত্র ৳১৫ হলো।"],
+    MARKET: ["তাজা সবজি আর ফলমূল আছে!", "ভাই একটু দাম কমিয়ে রাখুন না!", "আজকের বাজারদর বেশ চড়া দেখছি।", "পণ্য বিক্রি করে ভালোই লাভ হলো!"],
+    PARK: ["আজকের মিষ্টি হাওয়াটা কী অপূর্ব!", "বন্ধুরা মিলে খোশগল্প করার মজাই আলাদা।", "শহরের পরিস্থিতি নিয়ে ভাবছি...", "একটু জিরিয়ে নিচ্ছি ফোয়ারার কাছে।"],
+    HOSPITAL: ["ডাক্তারবাবু, শরীরটা বড্ড দুর্বল লাগছে!", "ঔষধ খেয়ে এখন বেশ বল পাচ্ছি।", "স্বাস্থ্যই সকল সুখের আসল উৎস।", "ইনজেকশন দেখে একটু ভয় পেয়েছিলাম!"],
+    GYM: ["আজ ৫০টা পুশ-আপ দিলাম!", "শরীর ফিট না রাখলে কর্মক্ষমতা থাকে না।", "ঘাম ঝরিয়ে দারুণ তাজা অনুভব করছি!", "ডাম্বেলটা বেশ ভারী মনে হচ্ছে!"],
+    POLICE: ["এলাকা সুরক্ষিত ও শান্তিপূর্ণ রাখতে হবে।", "অপরাধীদের কোনো ছাড় নেই!", "পাহারা ডিউটি সতর্কতার সাথে করছি।", "সবার নিরাপত্তা আমাদের দায়িত্ব।"],
+    CLUB: ["সুর আর সঙ্গীতের তালে মন দোলে!", "আজ আনন্দে মাতোয়ারা পুরো পরিবেশ!", "একটু বিনোদন পেলে মানসিক ক্লান্তি দূর হয়।", "তবলার তালের সাথে দারুণ গান!"],
+    SLEEP: ["zzZ... শান্তির ঘুম...", "সারা দিনের ক্লান্তির পর আরামদায়ক বিছানা... zzZ", "কাল নতুন উদ্দীপনায় কাজ শুরু করব..."],
+    CRIME: ["এই চোর! আমার টাকা ফেরত দে!", "ছিনতাইকারী পালাচ্ছে, ওকে ধরো!", "হায় হায়! আমার পকেট কেটে নিল!", "পুলিশ ডাকুন দ্রুত!"],
+    FIGHT: ["তোর সাহস তো কম না!", "এখানে আর আসবি না বলে দিলাম!", "আমার সাথে পাঙ্গা নিবি?", "থামুন আপনারা, মারামারি করবেন না!"],
+    STARVE: ["পেটে ভীষণ ক্ষুধা, পা চলছে না...", "কেউ কি একমুঠো খাবার দেবে?", "টাকা নেই, না খেয়ে আছি..."],
+    TRADE: ["৳২০ তে এই চমৎকার জিনিসটি নেবেন?", "দাম পছন্দ হয়েছে, এই নিন টাকা!", "চমৎকার ব্যবসা হলো আপনার সাথে!"]
+  };
+
+  function setCitizenSpeech(c, text, duration = 3.5, color = '#f8fafc', bg = 'rgba(15, 23, 42, 0.95)') {
+    c.bubble.text = text;
+    c.bubble.timer = duration;
+    c.bubble.color = color;
+    c.bubble.bg = bg;
+  }
+
+  // Action Logging
+  const logStream = document.getElementById('log-stream');
+  let logCounter = 0;
+  function addLog(tagType, tagText, msg) {
+    if (!logStream) return;
+    logCounter++;
+    const div = document.createElement('div');
+    div.className = 'log-item';
+    let tagClass = 'tag-work';
+    if (tagType === 'chat') tagClass = 'tag-chat';
+    else if (tagType === 'crime') tagClass = 'tag-crime';
+    else if (tagType === 'fight') tagClass = 'tag-fight';
+    else if (tagType === 'heal') tagClass = 'tag-heal';
+    else if (tagType === 'trade') tagClass = 'tag-trade';
+    else if (tagType === 'death') tagClass = 'tag-death';
+
+    div.innerHTML = `<span class="${tagClass}">[${tagText}]</span> ${msg}`;
+    logStream.insertBefore(div, logStream.firstChild);
+
+    // Keep log trimmed to 35 items
+    while (logStream.children.length > 35) {
+      logStream.removeChild(logStream.lastChild);
+    }
+  }
+
+  // Permadeath & Succession (Endless Simulation)
+  function handleCitizenDeath(c, reason = 'অসুস্থতা ও অনাহারে') {
+    addLog('death', 'মৃত্যু ও পুনর্জন্ম', `💀 ${c.name} (${c.personality}) ${reason} মারা গেছেন!`);
+    playAlertSound();
+    showToast(`💀 ${c.name} প্রয়াত হয়েছেন! নতুন নাগরিক হাল ধরলেন।`);
+
+    // Successor inherits tent
+    const newNameIndex = Math.floor(Math.random() * NAMES_POOL.length);
+    const newPersonalityIndex = Math.floor(Math.random() * PERSONALITIES.length);
+    const successorName = `নবীন ${NAMES_POOL[newNameIndex]}`;
+    const newPersonality = PERSONALITIES[newPersonalityIndex];
+
+    const newCitizen = createCitizen(c.id, c.tentId, successorName, newPersonality);
+    newCitizen.money = 30 + Math.floor(Math.random() * 30);
+    newCitizen.hp = 100;
+    newCitizen.hunger = 10;
+    citizens[c.id - 1] = newCitizen;
+
+    addLog('heal', 'উত্তরাধিকারী', `✨ ${successorName} তাঁবু ${toBanglaDigits(c.tentId)}-এর দায়িত্ব নিয়ে নতুন জীবন শুরু করলেন।`);
+    setCitizenSpeech(newCitizen, `আমি ${successorName}, এই শহরের নতুন নাগরিক!`);
+    updateSelectionUI();
+  }
+
+  // Assign Task to Citizen
+  function assignTask(c, taskType, isManual = false) {
+    let targetZone = null;
+    let targetX = c.x;
+    let targetY = c.y;
+    let maxDur = 6;
+    let taskName = '';
+    let taskIcon = '⭐';
+
+    if (taskType === 'SLEEP') {
+      const tent = TENTS[c.tentId - 1];
+      targetX = tent.x + tent.w / 2 + (Math.random() * 10 - 5);
+      targetY = tent.y + tent.h / 2 + (Math.random() * 10 - 5);
+      maxDur = 9;
+      taskName = 'তাঁবুতে নিদ্রা';
+      taskIcon = '🏕️';
+    } else if (ZONES[taskType]) {
+      targetZone = ZONES[taskType];
+      targetX = targetZone.x + 12 + Math.random() * (targetZone.w - 24);
+      targetY = targetZone.y + 12 + Math.random() * (targetZone.h - 24);
+      maxDur = targetZone.duration + (Math.random() * 2 - 1);
+      taskName = targetZone.name;
+      taskIcon = targetZone.icon;
+    }
+
+    c.task = {
+      type: taskType,
+      name: taskName,
+      zone: targetZone,
+      tentId: c.tentId,
+      icon: taskIcon,
+      progress: 0,
+      maxDuration: Math.max(2, maxDur)
+    };
+    c.targetX = targetX;
+    c.targetY = targetY;
+    c.state = 'walking';
+
+    if (isManual) {
+      setCitizenSpeech(c, `আমি ${taskName}-এ যাচ্ছি!`);
+      addLog('work', 'নির্দেশ', `👤 ${c.name}-কে ${taskName}-এ যাওয়ার আদেশ দেওয়া হলো।`);
+      playBeep(580, 'sine', 0.08);
+    }
+  }
+
+  // AI Autonomous Brain Decision Engine
+  function decideAutonomousTask(c) {
+    // 1. Extreme Critical Needs
+    if (c.hp < 35 && c.money >= 15) {
+      assignTask(c, 'HOSPITAL');
+      setCitizenSpeech(c, "আমার শরীর ভালো নেই, হাসপাতালে যাচ্ছি...");
+      return;
+    }
+    if (c.hunger > 65) {
+      if (c.money >= 10) {
+        assignTask(c, 'FOOD');
+        setCitizenSpeech(c, "পেটে অসম্ভব খিদে, খাবার দোকানে যাই...");
+      } else {
+        // Poor & Starving: Beg, steal or sleep
+        if (c.personality === 'লোভী' || c.personality === 'চতুর') {
+          assignTask(c, 'MARKET');
+          setCitizenSpeech(c, "ক্ষুধার জ্বালায় কিছু একটা করতেই হবে!");
+        } else {
+          assignTask(c, 'FARM'); // work for food
+          setCitizenSpeech(c, "টাকা নেই, মাঠে কাজ করে টাকা জোগাড় করি।");
+        }
+      }
+      return;
+    }
+    if (c.energy < 25) {
+      assignTask(c, 'SLEEP');
+      setCitizenSpeech(c, "খুব ক্লান্ত লাগছে, তাঁবুতে গিয়ে একটু ঘুমাই।");
+      return;
+    }
+
+    // 2. Personality-driven preferences
+    const rand = Math.random();
+    if (c.personality === 'পরিশ্রমী') {
+      if (rand < 0.5) assignTask(c, 'OFFICE');
+      else if (rand < 0.8) assignTask(c, 'FARM');
+      else assignTask(c, 'MARKET');
+    } else if (c.personality === 'জ্ঞানী') {
+      if (rand < 0.6) assignTask(c, 'SCHOOL');
+      else if (rand < 0.85) assignTask(c, 'PARK');
+      else assignTask(c, 'FOOD');
+    } else if (c.personality === 'ব্যবসায়ী') {
+      if (rand < 0.65) assignTask(c, 'MARKET');
+      else if (rand < 0.85) assignTask(c, 'OFFICE');
+      else assignTask(c, 'PARK');
+    } else if (c.personality === 'অলস') {
+      if (rand < 0.45) assignTask(c, 'PARK');
+      else if (rand < 0.75) assignTask(c, 'CLUB');
+      else assignTask(c, 'SLEEP');
+    } else if (c.personality === 'চটপটে') {
+      if (rand < 0.5) assignTask(c, 'GYM');
+      else if (rand < 0.8) assignTask(c, 'FARM');
+      else assignTask(c, 'PARK');
+    } else if (c.personality === 'ঝগড়াটে') {
+      if (rand < 0.4) assignTask(c, 'MARKET');
+      else if (rand < 0.7) assignTask(c, 'PARK');
+      else assignTask(c, 'CLUB');
+    } else if (c.personality === 'লোভী' || c.personality === 'চতুর') {
+      if (rand < 0.5) assignTask(c, 'MARKET');
+      else if (rand < 0.75) assignTask(c, 'OFFICE');
+      else assignTask(c, 'PARK');
+    } else {
+      // General / Honest citizen
+      const pool = ['FARM', 'SCHOOL', 'OFFICE', 'MARKET', 'PARK', 'GYM', 'CLUB'];
+      const chosen = pool[Math.floor(Math.random() * pool.length)];
+      assignTask(c, chosen);
+    }
+
+    // Occasional speech based on chosen zone
+    if (SPEECH_REPERTOIRE[c.task.type] && Math.random() < 0.65) {
+      const quotes = SPEECH_REPERTOIRE[c.task.type];
+      setCitizenSpeech(c, quotes[Math.floor(Math.random() * quotes.length)]);
+    }
+  }
+
+  // Work Completion Outcomes
+  function completeCurrentTask(c) {
+    const t = c.task.type;
+    if (t === 'FARM') {
+      const earned = 18 + Math.floor(Math.random() * 10);
+      c.money += earned;
+      c.energy = Math.max(0, c.energy - 18);
+      c.hunger = Math.min(100, c.hunger + 14);
+      addLog('work', 'কৃষিকাজ', `🌾 ${c.name} শস্য ফলিয়ে ৳${toBanglaDigits(earned)} আয় করলেন।`);
+    } else if (t === 'SCHOOL') {
+      c.intellect = Math.min(100, c.intellect + 8);
+      c.energy = Math.max(0, c.energy - 12);
+      c.hunger = Math.min(100, c.hunger + 10);
+      addLog('work', 'পড়াশোনা', `🏫 ${c.name} জ্ঞান অর্জন করলেন (+৮ বুদ্ধি)।`);
+    } else if (t === 'OFFICE') {
+      const earned = 25 + Math.floor(Math.random() * 15);
+      c.money += earned;
+      c.energy = Math.max(0, c.energy - 20);
+      c.hunger = Math.min(100, c.hunger + 15);
+      c.intellect = Math.min(100, c.intellect + 3);
+      addLog('work', 'অফিস', `🏢 ${c.name} দায়িত্ব পালন করে ৳${toBanglaDigits(earned)} বেতন পেলেন।`);
+    } else if (t === 'FOOD') {
+      const cost = Math.min(c.money, 12);
+      c.money -= cost;
+      c.hunger = Math.max(0, c.hunger - 55);
+      c.energy = Math.min(100, c.energy + 20);
+      c.hp = Math.min(100, c.hp + 5);
+      addLog('work', 'আহার', `🍲 ${c.name} পেট ভরে খেয়ে ক্ষুধা নিবারণ করলেন।`);
+    } else if (t === 'MARKET') {
+      // Trading / Buying / Selling
+      if (Math.random() < 0.6) {
+        const profit = 12 + Math.floor(Math.random() * 12);
+        c.money += profit;
+        addLog('trade', 'বাণিজ্য', `🛍️ ${c.name} বাজারে পণ্য বেচে ৳${toBanglaDigits(profit)} লাভ করলেন।`);
+      } else {
+        const spend = Math.min(c.money, 8);
+        c.money -= spend;
+        c.hp = Math.min(100, c.hp + 8);
+        addLog('trade', 'কেনাকাটা', `🛍️ ${c.name} প্রয়োজনীয় গৃহস্থালি সামগ্রী কিনলেন।`);
+      }
+      c.energy = Math.max(0, c.energy - 10);
+      c.hunger = Math.min(100, c.hunger + 10);
+    } else if (t === 'PARK') {
+      c.energy = Math.min(100, c.energy + 15);
+      c.hp = Math.min(100, c.hp + 6);
+      c.hunger = Math.min(100, c.hunger + 6);
+      addLog('chat', 'আড্ডা', `🌳 ${c.name} পার্কে মুক্ত হাওয়ায় গল্পগুজব করলেন।`);
+    } else if (t === 'HOSPITAL') {
+      const fee = Math.min(c.money, 20);
+      c.money -= fee;
+      c.hp = 100;
+      c.energy = Math.min(100, c.energy + 30);
+      addLog('heal', 'চিকিৎসা', `🏥 ${c.name} চিকিৎসা নিয়ে সম্পূর্ণ সুস্থ ও নীরোগ হলেন।`);
+      playHealSound();
+    } else if (t === 'GYM') {
+      c.hp = Math.min(100, c.hp + 12);
+      c.energy = Math.max(0, c.energy - 22);
+      c.hunger = Math.min(100, c.hunger + 18);
+      addLog('work', 'ব্যায়াম', `🏋️ ${c.name} কঠোর শরীরচর্চা করে শক্তি বৃদ্ধি করলেন।`);
+    } else if (t === 'POLICE') {
+      const bounty = 15;
+      c.money += bounty;
+      c.energy = Math.max(0, c.energy - 12);
+      addLog('work', 'আইনশৃঙ্খলা', `🚓 ${c.name} এলাকা পাহারা দিয়ে ভাতা পেলেন।`);
+    } else if (t === 'CLUB') {
+      const cost = Math.min(c.money, 10);
+      c.money -= cost;
+      c.energy = Math.min(100, c.energy + 18);
+      addLog('chat', 'বিনোদন', `🎪 ${c.name} সঙ্গীত উপভোগ করে আনন্দিত হলেন।`);
+    } else if (t === 'SLEEP') {
+      c.energy = 100;
+      c.hp = Math.min(100, c.hp + 25);
+      c.hunger = Math.min(100, c.hunger + 12);
+      addLog('work', 'নিদ্রা', `🏕️ ${c.name} পর্যাপ্ত ঘুমিয়ে পূর্ণ শক্তি ফিরে পেলেন।`);
+    }
+
+    // Automatically pick next routine after short breather
+    setTimeout(() => {
+      decideAutonomousTask(c);
+    }, 400);
+  }
+
+  // Inter-Citizen Autonomous Interactions (Mugging, Trading, Quarrel, Friendly Chat)
+  function checkCitizenInteractions() {
+    for (let i = 0; i < citizens.length; i++) {
+      const c1 = citizens[i];
+      if (c1.state === 'sleeping' || c1.hp <= 0) continue;
+
+      for (let j = i + 1; j < citizens.length; j++) {
+        const c2 = citizens[j];
+        if (c2.state === 'sleeping' || c2.hp <= 0) continue;
+
+        const dx = c1.x - c2.x;
+        const dy = c1.y - c2.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        // Within proximity (< 26px)
+        if (dist < 26) {
+          // 1. Mugging / Pickpocketing (Greedy or Thief)
+          if ((c1.personality === 'লোভী' || c1.personality === 'চতুর') && c2.money >= 35 && Math.random() < 0.006) {
+            const stolen = 15 + Math.floor(Math.random() * 15);
+            c2.money = Math.max(0, c2.money - stolen);
+            c1.money += stolen;
+            playAlertSound();
+            setCitizenSpeech(c1, `হাহাহা! ৳${toBanglaDigits(stolen)} পেয়ে গেলাম!`, 3, '#f43f5e');
+            setCitizenSpeech(c2, `এই বাটপাড়! আমার ৳${toBanglaDigits(stolen)} ছিনতাই করল!`, 3, '#f97316');
+            addLog('crime', 'ছিনতাই', `🦹 ${c1.name} সুযোগ বুঝে ${c2.name}-এর থেকে ৳${toBanglaDigits(stolen)} ছিনতাই করল!`);
+            // Chance of retaliatory brawl
+            if (c2.personality === 'ঝগড়াটে' || Math.random() < 0.4) {
+              c1.hp = Math.max(5, c1.hp - 12);
+              c2.hp = Math.max(5, c2.hp - 8);
+              addLog('fight', 'হাতাহাতি', `🥊 ছিনতাইয়ের প্রতিবাদে ${c2.name} ও ${c1.name}-এর মধ্যে মারামারি বাঁধল!`);
+            }
+            return;
+          }
+
+          // 2. Quarrel / Argument (Quarrelsome personality)
+          if ((c1.personality === 'ঝগড়াটে' || c2.personality === 'ঝগড়াটে') && Math.random() < 0.005) {
+            c1.hp = Math.max(5, c1.hp - 5);
+            c2.hp = Math.max(5, c2.hp - 5);
+            setCitizenSpeech(c1, "চোখ নেই নাকি? ধাক্কা দিলি কেন!", 2.5, '#ef4444');
+            setCitizenSpeech(c2, "তুই মুখ সামলে কথা বলবি!", 2.5, '#ef4444');
+            addLog('fight', 'ঝগড়া', `⚡ ${c1.name} এবং ${c2.name} সামান্য কারণে ঝগড়ায় লিপ্ত হলেন!`);
+            return;
+          }
+
+          // 3. Trade / Bargain Exchange (Especially at Market or Park)
+          if (Math.random() < 0.005) {
+            if (c1.money >= 15 && c2.money < 80) {
+              const tradeVal = 10 + Math.floor(Math.random() * 8);
+              c1.money -= tradeVal;
+              c2.money += tradeVal;
+              c1.hp = Math.min(100, c1.hp + 4);
+              setCitizenSpeech(c1, `৳${toBanglaDigits(tradeVal)} তে চমৎকার মাল নিলাম।`, 2.5, '#a855f7');
+              setCitizenSpeech(c2, `ধন্যবাদ ভাই! ব্যবসা ভালো হলো।`, 2.5, '#a855f7');
+              addLog('trade', 'কেনাবেচা', `🤝 ${c1.name} ও ${c2.name}-এর মাঝে ৳${toBanglaDigits(tradeVal)}-এর জিনিস কেনাবেচা হলো।`);
+              playCoinSound();
+              return;
+            }
+          }
+
+          // 4. Friendly Gossip & Chat
+          if (c1.bubble.timer <= 0 && c2.bubble.timer <= 0 && Math.random() < 0.004) {
+            const greetings = [
+              [`কেমন আছেন ${c2.name} ভাই?`, `ভালো ভাই, আপনি কেমন?`],
+              [`আজকের রোদের তেজ দারুণ!`, `হাঁ, ফসলের জন্য ভালোই।`],
+              [`বাজারে মাছের দর শুনেছেন?`, `হাঁ, ইলিশ নাকি সস্তা হয়েছে!`],
+              [`শহরের খবর কি ভাই?`, `সবই শান্ত, জীবন কাটছে নিজ গতিতে।`]
+            ];
+            const pair = greetings[Math.floor(Math.random() * greetings.length)];
+            setCitizenSpeech(c1, pair[0], 2.8, '#38bdf8');
+            setCitizenSpeech(c2, pair[1], 2.8, '#38bdf8');
+            addLog('chat', 'আলাপ', `💬 ${c1.name} এবং ${c2.name} কুশল বিনিময় করলেন।`);
+            return;
+          }
+        }
+      }
+    }
+  }
+
+  // Canvas Setup & Rendering
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+
+  function initRain() {
+    rainParticles = [];
+    for (let i = 0; i < 70; i++) {
+      rainParticles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        len: 8 + Math.random() * 10,
+        spd: 6 + Math.random() * 4
+      });
+    }
+  }
+  initRain();
+
+  function drawWorld() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Ground / Grass
+    ctx.fillStyle = '#111e30';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Subtle stone pathways connecting zones
+    ctx.fillStyle = '#1e293b';
+    // Horizontal main roads
+    ctx.fillRect(0, 83, canvas.width, 14);
+    ctx.fillRect(0, 168, canvas.width, 14);
+    // Vertical crossing roads
+    ctx.fillRect(82, 0, 10, 195);
+    ctx.fillRect(160, 0, 10, 195);
+    ctx.fillRect(238, 0, 10, 195);
+    ctx.fillRect(318, 0, 10, 195);
+
+    // Draw 10 Activity Zones
+    Object.values(ZONES).forEach(z => {
+      // Zone Background
+      ctx.fillStyle = z.color;
+      ctx.beginPath();
+      ctx.roundRect(z.x, z.y, z.w, z.h, 6);
+      ctx.fill();
+
+      // Border
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Inner details & styling
+      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      ctx.fillRect(z.x + 3, z.y + 3, z.w - 6, 16);
+
+      // Icon & Label
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${z.icon} ${z.name}`, z.x + z.w / 2, z.y + 14);
+
+      // Zone decorative patterns
+      if (z.id === 'FARM') {
+        // Furrows
+        ctx.fillStyle = '#2d4a0c';
+        for (let row = 0; row < 3; row++) {
+          ctx.fillRect(z.x + 6, z.y + 24 + row * 12, z.w - 12, 6);
+        }
+      } else if (z.id === 'PARK') {
+        // Fountain circle
+        ctx.fillStyle = '#0284c7';
+        ctx.beginPath();
+        ctx.arc(z.x + z.w / 2, z.y + z.h / 2 + 6, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#bae6fd';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      } else if (z.id === 'HOSPITAL') {
+        // Red Cross
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(z.x + z.w / 2 - 2, z.y + 30, 4, 18);
+        ctx.fillRect(z.x + z.w / 2 - 9, z.y + 37, 18, 4);
+      }
+    });
+
+    // Draw 10 Tents Area at the Bottom
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(0, 184, canvas.width, 126);
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, 184);
+    ctx.lineTo(canvas.width, 184);
+    ctx.stroke();
+
+    // Section title for tents
+    ctx.fillStyle = '#64748b';
+    ctx.font = '8px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('🏕️ আবাসিক তাঁবু পল্লী (১০ জন নাগরিকের নিজস্ব তাঁবু):', 8, 193);
+
+    TENTS.forEach(tent => {
+      // Tent Base
+      ctx.fillStyle = '#1e293b';
+      ctx.beginPath();
+      ctx.roundRect(tent.x, tent.y, tent.w, tent.h, 5);
+      ctx.fill();
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+
+      // Tent Triangle Graphic
+      ctx.fillStyle = '#0284c7';
+      ctx.beginPath();
+      ctx.moveTo(tent.x + 8, tent.y + tent.h - 4);
+      ctx.lineTo(tent.x + tent.w / 2, tent.y + 8);
+      ctx.lineTo(tent.x + tent.w - 8, tent.y + tent.h - 4);
+      ctx.closePath();
+      ctx.fill();
+
+      // Tent Door
+      ctx.fillStyle = '#082f49';
+      ctx.beginPath();
+      ctx.moveTo(tent.x + tent.w / 2 - 5, tent.y + tent.h - 4);
+      ctx.lineTo(tent.x + tent.w / 2, tent.y + 16);
+      ctx.lineTo(tent.x + tent.w / 2 + 5, tent.y + tent.h - 4);
+      ctx.closePath();
+      ctx.fill();
+
+      // Tent Label
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = 'bold 8px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(tent.name, tent.x + tent.w / 2, tent.y + tent.h - 6);
+    });
+
+    // Draw Citizens
+    citizens.forEach(c => {
+      const isSelected = (c.id === selectedCitizenId);
+
+      // Selected Golden Ring
+      if (isSelected) {
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, 11, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Little bouncing pointer above head
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.moveTo(c.x, c.y - 17);
+        ctx.lineTo(c.x - 4, c.y - 23);
+        ctx.lineTo(c.x + 4, c.y - 23);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // Shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath();
+      ctx.ellipse(c.x, c.y + 6, 7, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Body / Avatar Circle
+      ctx.fillStyle = c.color;
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, 6.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Eye dots
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(c.x - 2, c.y - 1, 1.2, 0, Math.PI * 2);
+      ctx.arc(c.x + 2, c.y - 1, 1.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Citizen Mini Name & Task Icon
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = '7px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${c.name}`, c.x, c.y + 14);
+
+      // Mini Work Progress Arc above head
+      if (c.state === 'working' && c.task) {
+        const prog = c.task.progress / c.task.maxDuration;
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, 8.5, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * prog);
+        ctx.stroke();
+      }
+
+      // Speech Bubble on Canvas
+      if (c.bubble.timer > 0 && c.bubble.text) {
+        drawSpeechBubble(ctx, c.x, c.y - 14, c.bubble.text, c.bubble.color, c.bubble.bg);
+      }
+    });
+
+    // Weather Effects & Lighting Tint
+    drawLightingAndWeather();
+  }
+
+  function drawSpeechBubble(ctx, x, y, text, textColor, bgColor) {
+    ctx.font = '8px sans-serif';
+    const textWidth = ctx.measureText(text).width;
+    const padding = 5;
+    const bw = Math.min(140, textWidth + padding * 2);
+    const bh = 14;
+    let bx = x - bw / 2;
+    let by = y - bh - 6;
+
+    // Keep bubble inside canvas boundaries
+    if (bx < 4) bx = 4;
+    if (bx + bw > canvas.width - 4) bx = canvas.width - 4 - bw;
+    if (by < 4) by = y + 18; // flip downwards if too high
+
+    // Bubble Box
+    ctx.fillStyle = bgColor;
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.roundRect(bx, by, bw, bh, 4);
+    ctx.fill();
+    ctx.stroke();
+
+    // Tail
+    ctx.fillStyle = bgColor;
+    ctx.beginPath();
+    ctx.moveTo(x - 3, by + bh);
+    ctx.lineTo(x, by + bh + 4);
+    ctx.lineTo(x + 3, by + bh);
+    ctx.closePath();
+    ctx.fill();
+
+    // Text
+    ctx.fillStyle = textColor;
+    ctx.textAlign = 'center';
+    ctx.fillText(text, bx + bw / 2, by + 10);
+  }
+
+  function drawLightingAndWeather() {
+    // Day-Night Time Tint
+    const hour = (timeMinutes / 60) % 24;
+    let nightAlpha = 0;
+    if (hour < 5 || hour > 20) {
+      nightAlpha = 0.5; // full night
+    } else if (hour >= 5 && hour < 7) {
+      nightAlpha = 0.5 - ((hour - 5) / 2) * 0.5; // dawn
+    } else if (hour >= 18 && hour <= 20) {
+      nightAlpha = ((hour - 18) / 2) * 0.5; // dusk
+    }
+
+    if (nightAlpha > 0) {
+      ctx.fillStyle = `rgba(3, 7, 18, ${nightAlpha})`;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Rain / Storm
+    if (weather === 'rainy' || weather === 'storm') {
+      ctx.strokeStyle = 'rgba(186, 230, 253, 0.6)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      rainParticles.forEach(p => {
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x - 2, p.y + p.len);
+        p.y += p.spd * simSpeed;
+        p.x -= 1 * simSpeed;
+        if (p.y > canvas.height) {
+          p.y = -10;
+          p.x = Math.random() * canvas.width;
+        }
+      });
+      ctx.stroke();
+
+      // Lightning flash occasionally in storm
+      if (weather === 'storm' && Math.random() < 0.03) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        playAlertSound();
+      }
+    }
+  }
+
+  // Update Game Loop
+  let lastTime = performance.now();
+  function gameLoop(now) {
+    const delta = (now - lastTime) / 1000;
+    lastTime = now;
+
+    if (simSpeed > 0) {
+      const dt = delta * simSpeed;
+
+      // 1. Time Advancement
+      timeMinutes += dt * 3.5; // ~1 real second = 3.5 game minutes
+      if (timeMinutes >= 24 * 60) {
+        timeMinutes = 0;
+        dayCount++;
+        addLog('work', 'নতুন দিন', `🌅 দিন ${toBanglaDigits(dayCount)} শুরু হলো। শুভ সকাল!`);
+        showToast(`🌅 দিন ${toBanglaDigits(dayCount)} শুরু হলো!`);
+      }
+
+      // Storm duration countdown
+      if (stormTimer > 0) {
+        stormTimer -= dt;
+        if (stormTimer <= 0) {
+          weather = 'sunny';
+          updateWeatherUI();
+          showToast("☀️ ঝড় থেমে রোদ উঠল!");
+        }
+      }
+
+      // 2. Citizens Update
+      citizens.forEach(c => {
+        // Slow hunger & energy consumption
+        c.hunger = Math.min(100, c.hunger + dt * 0.4); // Very slow hunger rate
+        if (c.hunger >= 95) {
+          c.hp = Math.max(0, c.hp - dt * 2.5); // starvation HP drain
+          if (c.hp <= 0) {
+            handleCitizenDeath(c, 'অনাহারে ও খাদ্যভাবে');
+            return;
+          }
+        }
+
+        // Speech bubble timer
+        if (c.bubble.timer > 0) {
+          c.bubble.timer -= dt;
+        }
+
+        // Movement towards target
+        const dx = c.targetX - c.x;
+        const dy = c.targetY - c.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist > 3) {
+          c.state = 'walking';
+          c.x += (dx / dist) * c.speed * dt * 30;
+          c.y += (dy / dist) * c.speed * dt * 30;
+        } else {
+          // Arrived at destination
+          c.x = c.targetX;
+          c.y = c.targetY;
+          c.state = (c.task.type === 'SLEEP') ? 'sleeping' : 'working';
+
+          // Progress task
+          if (c.task) {
+            c.task.progress += dt;
+            if (c.task.progress >= c.task.maxDuration) {
+              completeCurrentTask(c);
+            }
+          }
+        }
+      });
+
+      // 3. Check Inter-Citizen Social/Crime interactions
+      checkCitizenInteractions();
+
+      // 4. Update UI Timers
+      updateHeaderUI();
+      updateGridCards();
+    }
+
+    // Render Canvas
+    drawWorld();
+
+    requestAnimationFrame(gameLoop);
+  }
+
+  // UI Updates
+  const dayCounterEl = document.getElementById('day-counter');
+  const clockDisplayEl = document.getElementById('clock-display');
+  const weatherTextEl = document.getElementById('weather-text');
+  const weatherBadgeEl = document.getElementById('weather-badge');
+
+  function updateHeaderUI() {
+    if (!dayCounterEl) return;
+    dayCounterEl.textContent = `দিন ${toBanglaDigits(dayCount)}`;
+    const hrs = Math.floor(timeMinutes / 60) % 24;
+    const mins = Math.floor(timeMinutes % 60);
+    const ampm = hrs >= 12 ? 'PM' : 'AM';
+    const displayHrs = hrs % 12 === 0 ? 12 : hrs % 12;
+    const padMins = mins < 10 ? '০' + toBanglaDigits(mins) : toBanglaDigits(mins);
+    clockDisplayEl.textContent = `${toBanglaDigits(displayHrs)}:${padMins} ${ampm}`;
+  }
+
+  function updateWeatherUI() {
+    if (!weatherTextEl) return;
+    if (weather === 'sunny') {
+      weatherBadgeEl.innerHTML = `<span>☀️</span> <span>রৌদ্রোজ্জ্বল</span>`;
+    } else if (weather === 'storm') {
+      weatherBadgeEl.innerHTML = `<span>⛈️</span> <span>কালবৈশাখী ঝড়</span>`;
+    } else if (weather === 'rainy') {
+      weatherBadgeEl.innerHTML = `<span>🌧️</span> <span>বৃষ্টি হচ্ছে</span>`;
+    }
+  }
+
+  // 5x2 Citizen Grid Rendering
+  const citizenGrid = document.getElementById('citizen-grid');
+  function createGridCards() {
+    if (!citizenGrid) return;
+    citizenGrid.innerHTML = '';
+    citizens.forEach(c => {
+      const card = document.createElement('div');
+      card.className = `c-card ${c.id === selectedCitizenId ? 'selected' : ''}`;
+      card.id = `card-citizen-${c.id}`;
+      card.onclick = () => selectCitizen(c.id);
+
+      card.innerHTML = `
+        <div class="c-top">
+          <span class="c-name">${c.name}</span>
+          <span class="c-tent">#${toBanglaDigits(c.tentId)}</span>
+        </div>
+        <div class="c-money">৳${toBanglaDigits(c.money)}</div>
+        <div class="c-task-badge" id="c-task-${c.id}">
+          <span>${c.task.icon}</span>
+          <span style="overflow:hidden;text-overflow:ellipsis;">${c.task.name}</span>
+        </div>
+        <div class="bar-wrap">
+          <div class="bar-hp" id="c-hp-${c.id}" style="width: ${c.hp}%"></div>
+        </div>
+        <div class="bar-wrap">
+          <div class="bar-prog" id="c-prog-${c.id}" style="width: 0%"></div>
+        </div>
+      `;
+      citizenGrid.appendChild(card);
+    });
+  }
+
+  function updateGridCards() {
+    citizens.forEach(c => {
+      const hpBar = document.getElementById(`c-hp-${c.id}`);
+      const progBar = document.getElementById(`c-prog-${c.id}`);
+      const taskBadge = document.getElementById(`c-task-${c.id}`);
+      const card = document.getElementById(`card-citizen-${c.id}`);
+
+      if (hpBar) {
+        hpBar.style.width = `${Math.max(0, Math.min(100, c.hp))}%`;
+        if (c.hp < 30) hpBar.style.background = 'var(--red)';
+        else if (c.hp < 65) hpBar.style.background = 'var(--gold)';
+        else hpBar.style.background = 'var(--green)';
+      }
+      if (progBar && c.task) {
+        const pct = Math.min(100, (c.task.progress / c.task.maxDuration) * 100);
+        progBar.style.width = `${pct}%`;
+      }
+      if (taskBadge && c.task) {
+        taskBadge.innerHTML = `<span>${c.task.icon}</span> <span style="overflow:hidden;text-overflow:ellipsis;">${c.task.name}</span>`;
+      }
+      if (card) {
+        const moneyEl = card.querySelector('.c-money');
+        if (moneyEl) moneyEl.textContent = `৳${toBanglaDigits(c.money)}`;
+        if (c.id === selectedCitizenId) {
+          card.classList.add('selected');
+        } else {
+          card.classList.remove('selected');
+        }
+      }
+    });
+  }
+
+  // Selection Logic
+  const selectedInfoEl = document.getElementById('selected-info');
+  function selectCitizen(id) {
+    selectedCitizenId = id;
+    updateSelectionUI();
+    playBeep(480, 'sine', 0.05);
+  }
+
+  function updateSelectionUI() {
+    const c = citizens[selectedCitizenId - 1];
+    if (!c || !selectedInfoEl) return;
+    selectedInfoEl.textContent = `নাগরিক: ${toBanglaDigits(c.id)}. ${c.name} (${c.personality})`;
+    updateGridCards();
+  }
+
+  // Canvas Click Detection
+  canvas.addEventListener('click', (e) => {
+    initAudio();
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const clickX = (e.clientX - rect.left) * scaleX;
+    const clickY = (e.clientY - rect.top) * scaleY;
+
+    // Check if clicked any citizen
+    let clicked = null;
+    let minDist = 18;
+    citizens.forEach(c => {
+      const d = Math.hypot(c.x - clickX, c.y - clickY);
+      if (d < minDist) {
+        minDist = d;
+        clicked = c;
+      }
+    });
+
+    if (clicked) {
+      selectCitizen(clicked.id);
+    }
+  });
+
+  // Controls Event Listeners
+  document.getElementById('spd-1x').addEventListener('click', function() {
+    initAudio();
+    simSpeed = 1;
+    this.classList.add('active');
+    document.getElementById('spd-2x').classList.remove('active');
+    document.getElementById('spd-pause').classList.remove('active');
+    showToast("গতি: ১x (স্বাভাবিক)");
+  });
+  document.getElementById('spd-2x').addEventListener('click', function() {
+    initAudio();
+    simSpeed = 2;
+    this.classList.add('active');
+    document.getElementById('spd-1x').classList.remove('active');
+    document.getElementById('spd-pause').classList.remove('active');
+    showToast("গতি: ২x (দ্রুত)");
+  });
+  document.getElementById('spd-pause').addEventListener('click', function() {
+    initAudio();
+    simSpeed = 0;
+    this.classList.add('active');
+    document.getElementById('spd-1x').classList.remove('active');
+    document.getElementById('spd-2x').classList.remove('active');
+    showToast("সিমুলেশন সাময়িক স্থগিত (Paused)");
+  });
+  document.getElementById('sound-btn').addEventListener('click', function() {
+    initAudio();
+    soundEnabled = !soundEnabled;
+    this.textContent = soundEnabled ? '🔊' : '🔇';
+    showToast(soundEnabled ? "শব্দ চালু" : "শব্দ বন্ধ");
+  });
+
+  // Individual Actions via Button Clicks
+  const actionWrap = document.getElementById('action-buttons-wrap');
+  actionWrap.addEventListener('click', (e) => {
+    initAudio();
+    const btn = e.target.closest('.act-btn');
+    if (!btn) return;
+    const act = btn.getAttribute('data-act');
+    const c = citizens[selectedCitizenId - 1];
+    if (c && act) {
+      assignTask(c, act, true);
+    }
+  });
+
+  // God Mode: Give Money
+  document.getElementById('btn-give-money').addEventListener('click', () => {
+    initAudio();
+    const c = citizens[selectedCitizenId - 1];
+    if (c) {
+      c.money += 50;
+      playCoinSound();
+      showToast(`💵 ${c.name}-কে ৳৫০ দেওয়া হলো!`);
+      addLog('heal', 'দান', `💰 দেবদূত হিসেবে আপনি ${c.name}-কে ৳৫০ অনুদান দিলেন।`);
+      setCitizenSpeech(c, "বাহ্! ওপরওয়ালার দান পেলাম!", 3, '#f59e0b');
+      updateGridCards();
+    }
+  });
+
+  // God Mode: Full Heal
+  document.getElementById('btn-full-heal').addEventListener('click', () => {
+    initAudio();
+    const c = citizens[selectedCitizenId - 1];
+    if (c) {
+      c.hp = 100;
+      c.hunger = 0;
+      c.energy = 100;
+      playHealSound();
+      showToast(`💖 ${c.name}-কে পূর্ণ সুস্থ ও চাঙ্গা করা হলো!`);
+      addLog('heal', 'সুস্থতা', `✨ দৈব শক্তিতে ${c.name} সম্পূর্ণ নীরোগ ও সুস্থ হলো।`);
+      setCitizenSpeech(c, "শরীর মন একদম চাঙ্গা হয়ে গেল!", 3, '#10b981');
+      updateGridCards();
+    }
+  });
+
+  // Global Event 1: Grand Feast
+  document.getElementById('ev-feast').addEventListener('click', () => {
+    initAudio();
+    citizens.forEach(c => {
+      c.hunger = 0;
+      c.energy = 100;
+      setCitizenSpeech(c, "আহ্! রাজকীয় ভোজ!", 3, '#10b981');
+    });
+    playHealSound();
+    showToast("🍲 সবার জন্য গণভোজ অনুষ্ঠিত হলো! সবার ক্ষুধা মিটল।");
+    addLog('heal', 'গণভোজ', `🎉 শহরে রাজকীয় গণভোজের আয়োজন করা হলো। ১০ জন নাগরিকের ক্ষুধা দূর হলো!`);
+  });
+
+  // Global Event 2: Universal Basic Income
+  document.getElementById('ev-ubi').addEventListener('click', () => {
+    initAudio();
+    citizens.forEach(c => {
+      c.money += 100;
+      setCitizenSpeech(c, "সরকারি ভাতা পেলাম! ৳১০০!", 3, '#38bdf8');
+    });
+    playCoinSound();
+    showToast("💰 সবাইকে ৳১০০ ভাতা প্রদান করা হলো!");
+    addLog('trade', 'সার্বজনীন ভাতা', `💵 শহরের প্রতিটি নাগরিককে ৳১০০ করে সরকারি ভাতা প্রদান করা হলো।`);
+  });
+
+  // Global Event 3: Robbery Wave
+  document.getElementById('ev-crime').addEventListener('click', () => {
+    initAudio();
+    let robbedCount = 0;
+    citizens.forEach(c => {
+      if (c.personality === 'লোভী' || c.personality === 'চতুর') {
+        c.money += 30;
+        setCitizenSpeech(c, "আজ দারুণ হাত সাফাই করলাম!", 3, '#f43f5e');
+      } else {
+        const lost = Math.min(c.money, 25);
+        c.money -= lost;
+        c.hp = Math.max(10, c.hp - 10);
+        setCitizenSpeech(c, "হায় হায়! ডাকাত দল সব লুট করল!", 3, '#f43f5e');
+        robbedCount++;
+      }
+    });
+    playAlertSound();
+    showToast("🦹 শহরে ডাকাতি সংঘটিত হলো! হুলস্থুল পড়ে গেছে।");
+    addLog('crime', 'ডাকাতি কাণ্ড', `🚨 আকস্মিক ডাকাত দল শহরে হানা দিয়ে সাধারণ নাগরিকদের লুট করল!`);
+  });
+
+  // Global Event 4: Sudden Storm
+  document.getElementById('ev-storm').addEventListener('click', () => {
+    initAudio();
+    weather = 'storm';
+    stormTimer = 20; // 20 seconds storm
+    updateWeatherUI();
+    playAlertSound();
+    citizens.forEach(c => {
+      assignTask(c, 'SLEEP');
+      setCitizenSpeech(c, "ভীষণ ঝড় এসেছে! তাঁবুতে পালাও!", 3, '#f97316');
+    });
+    showToast("⛈️ কালবৈশাখী ঝড় শুরু হলো! সবাই তাঁবুতে আশ্রয় নিচ্ছে।");
+    addLog('fight', 'কালবৈশাখী ঝড়', `⛈️ আকাশ কালো হয়ে প্রচণ্ড কালবৈশাখী ঝড় শুরু হলো। সবাই নিরাপদ আশ্রয়ে ছুটল।`);
+  });
+
+  // Global Event 5: Town Festival
+  document.getElementById('ev-festival').addEventListener('click', () => {
+    initAudio();
+    citizens.forEach(c => {
+      if (Math.random() < 0.5) assignTask(c, 'CLUB');
+      else assignTask(c, 'PARK');
+      c.energy = 100;
+      c.hp = Math.min(100, c.hp + 20);
+      setCitizenSpeech(c, "বসন্ত উৎসবের আনন্দই আলাদা!", 3, '#a855f7');
+    });
+    playHealSound();
+    showToast("🎪 বসন্ত মেলা ও উৎসব শুরু হলো! সবাই আনন্দে মেতে উঠল।");
+    addLog('chat', 'বসন্ত উৎসব', `🌺 শহরে জাঁকজমকপূর্ণ বসন্ত উৎসব উদযাপিত হচ্ছে। মেলা প্রাঙ্গণে আনন্দ ও উৎসবমুখর পরিবেশ!`);
+  });
+
+  // Initialize
+  initCitizens();
+  createGridCards();
+  updateSelectionUI();
+  updateHeaderUI();
+  updateWeatherUI();
+  addLog('work', 'শুরু', '✨ মুক্ত বিশ্ব জীবন সিমুলেশন সফলভাবে চালু হলো। ১০ জন নাগরিক নিজেদের দিনলিপি শুরু করেছে।');
+
+  // Start Loop
+  requestAnimationFrame(gameLoop);
+})();
+</script>
+</body>
+</html>
